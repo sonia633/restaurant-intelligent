@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Restaurant Intelligent</title>
+  <style>
+    :root { --primary:#e63946; --primary-dark:#c1121f; --accent:#f77f00; --dark:#2b2d42; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:#f6f3ee; color:var(--dark); }
+    header { background:linear-gradient(135deg,var(--dark),#1a1b2e); color:#fff; padding:16px 22px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { font-size:18px; margin:0; }
+    header button { background:var(--primary); color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; }
+    .login { max-width:340px; margin:90px auto; background:#fff; padding:26px; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+    .login input { width:100%; padding:11px; margin:7px 0; border:1px solid #ccc; border-radius:8px; }
+    .login button { width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-size:15px; }
+    .err { color:var(--primary); font-size:14px; }
+    main { padding:22px; max-width:1100px; margin:0 auto; }
+    section { background:#fff; border-radius:14px; padding:18px 20px; margin-bottom:20px; box-shadow:0 1px 6px rgba(0,0,0,.05); }
+    section h2 { margin-top:0; font-size:16px; color:var(--primary); }
+    .stats { display:flex; gap:16px; flex-wrap:wrap; }
+    .stat { flex:1; min-width:150px; background:#faf7f2; border-radius:12px; padding:16px; text-align:center; }
+    .stat .num { font-size:28px; font-weight:700; color:var(--primary); }
+    .stat .lbl { font-size:13px; color:#777; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; margin-top:8px; }
+    th, td { text-align:left; padding:9px 8px; border-bottom:1px solid #eee; font-size:14px; }
+    th { color:#888; font-weight:600; font-size:12px; text-transform:uppercase; }
+    .btn { border:none; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:13px; }
+    .btn-del { background:#fde8e6; color:var(--primary); }
+    .btn-add { background:var(--primary); color:#fff; padding:9px 16px; }
+    .btn-toggle { background:#eef; color:#2c3e9e; }
+    .row-form input, .row-form select { padding:8px; border:1px solid #ccc; border-radius:6px; margin-right:6px; }
+    .pill { padding:2px 9px; border-radius:10px; font-size:12px; }
+    .ok { background:#e6f7ec; color:#27ae60; } .ko { background:#fde8e6; color:var(--primary); }
+    .muted { color:#999; }
+    .stat .num { color:var(--primary); }
+    section h2 { color:var(--primary); }
+    .btn-add { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); }
+    .btn-light { background:#fff; border:1px solid #ddd; color:var(--dark); }
+    /* Carte d'ajout avec photo */
+    .add-card { display:flex; gap:18px; align-items:flex-start; background:#faf7f2;
+                border:1px dashed #e0d7cc; border-radius:14px; padding:16px; margin-bottom:14px; flex-wrap:wrap; }
+    .photo-pick { text-align:center; }
+    .preview { width:110px; height:110px; border-radius:14px; background:#eee url('') center/cover no-repeat;
+               display:flex; align-items:center; justify-content:center; font-size:38px; color:#bbb;
+               cursor:pointer; border:2px solid #e0d7cc; margin-bottom:8px; }
+    .add-fields { display:flex; gap:8px; flex-wrap:wrap; align-items:center; flex:1; min-width:260px; }
+    .menu-thumb { width:46px; height:46px; border-radius:9px; object-fit:cover; display:flex;
+                  align-items:center; justify-content:center; font-size:22px; color:#fff; }
+  </style>
+</head>
+<body>
+  <!-- Connexion -->
+  <div class="login" id="login">
+    <h2 style="color:var(--primary);margin-top:0;">🔐 Admin</h2>
+    <input id="u" placeholder="Utilisateur (admin)" />
+    <input id="p" type="password" placeholder="Mot de passe" />
+    <button onclick="login()">Se connecter</button>
+    <p class="err" id="loginErr"></p>
+  </div>
+
+  <!-- Tableau de bord -->
+  <div id="app" style="display:none;">
+    <header>
+      <h1>📊 Administration — Restaurant Intelligent</h1>
+      <div>
+        <a href="/kitchen.html" style="color:#bbb;margin-right:14px;">Vue cuisine</a>
+        <button onclick="location.reload()">Déconnexion</button>
+      </div>
+    </header>
+    <main>
+      <!-- STATS -->
+      <section>
+        <h2>Statistiques</h2>
+        <div class="stats" id="stats"></div>
+        <div id="topDishes" style="margin-top:12px;"></div>
+      </section>
+
+      <!-- MENU -->
+      <section>
+        <h2>Gestion du menu</h2>
+        <div class="add-card">
+          <div class="photo-pick">
+            <div class="preview" id="m-preview" onclick="document.getElementById('m-file').click()">📷</div>
+            <button type="button" class="btn btn-light" onclick="document.getElementById('m-file').click()">Choisir une photo</button>
+            <input type="file" id="m-file" accept="image/*" hidden onchange="pickPhoto(event)" />
+          </div>
+          <div class="add-fields">
+            <input id="m-name" placeholder="Nom du plat" />
+            <select id="m-cat">
+              <option>Entrée</option><option>Plat</option><option>Dessert</option><option>Boisson</option>
+            </select>
+            <input id="m-price" type="number" step="0.5" placeholder="Prix €" style="width:100px;" />
+            <input id="m-img" placeholder="…ou coller une URL d'image (https://…)" oninput="urlPreview()" style="flex:1;min-width:200px;" />
+            <button class="btn btn-add" onclick="addDish()">+ Ajouter le plat</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Photo</th><th>Plat</th><th>Catégorie</th><th>Prix</th><th>Dispo</th><th>Actions</th></tr></thead>
+          <tbody id="menuBody"></tbody>
+        </table>
+      </section>
+
+      <!-- PERSONNEL -->
+      <section>
+        <h2>Gestion du personnel</h2>
+        <div class="row-form" style="margin-bottom:12px;">
+          <input id="s-user" placeholder="Identifiant" />
+          <input id="s-pass" type="password" placeholder="Mot de passe" />
+          <select id="s-role"><option value="serveur">Serveur</option><option value="admin">Admin</option></select>
+          <button class="btn btn-add" onclick="addStaff()">+ Créer le compte</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Identifiant</th><th>Rôle</th><th>Actions</th></tr></thead>
+          <tbody id="staffBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let token = null, myId = null;
+    const api = (url, opts = {}) => fetch(url, {
+      ...opts,
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, ...(opts.headers || {}) },
+    }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error || "Erreur"); return d; });
+
+    async function login() {
+      try {
+        const d = await fetch("/api/auth/login", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u.value, password: p.value }),
+        }).then(r => r.json());
+        if (d.error) { loginErr.textContent = d.error; return; }
+        if (d.role !== "admin") { loginErr.textContent = "Ce compte n'est pas administrateur."; return; }
+        token = d.token;
+        login_.style.display = "none"; app.style.display = "block";
+        const me = await api("/api/auth/me"); myId = me.id;
+        refresh();
+      } catch (e) { loginErr.textContent = e.message; }
+    }
+
+    async function refresh() { await Promise.all([loadStats(), loadMenu(), loadStaff()]); }
+
+    async function loadStats() {
+      const s = await api("/api/stats");
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><div class="num">${s.revenue.toFixed(2)} €</div><div class="lbl">Chiffre d'affaires</div></div>
+        <div class="stat"><div class="num">${s.totalOrders}</div><div class="lbl">Commandes</div></div>
+        <div class="stat"><div class="num">${s.tablesOccupied}/${s.tablesTotal}</div><div class="lbl">Tables occupées</div></div>`;
+      document.getElementById("topDishes").innerHTML = s.topDishes.length
+        ? "<b>Top plats :</b> " + s.topDishes.map(d => `${d.name} (${d.qty})`).join(" · ")
+        : '<span class="muted">Aucune vente pour l\'instant.</span>';
+    }
+
+    const CAT = { "Entrée":{e:"🥗",c:"#2a9d8f"}, "Plat":{e:"🍔",c:"#e63946"},
+                  "Dessert":{e:"🍰",c:"#e76f51"}, "Boisson":{e:"🥤",c:"#f77f00"} };
+    function thumb(d) {
+      const f = CAT[d.category] || {e:"🍴",c:"#8d99ae"};
+      return d.image
+        ? `<img class="menu-thumb" src="${d.image}" alt="" onerror="this.outerHTML='<div class=\\'menu-thumb\\' style=\\'background:${f.c}\\'>${f.e}</div>'" />`
+        : `<div class="menu-thumb" style="background:${f.c}">${f.e}</div>`;
+    }
+
+    async function loadMenu() {
+      const menu = await api("/api/admin/menu");
+      document.getElementById("menuBody").innerHTML = menu.map(d => `
+        <tr>
+          <td>${thumb(d)}</td>
+          <td>${d.name}</td><td>${d.category}</td><td>${d.price.toFixed(2)} €</td>
+          <td><span class="pill ${d.available ? "ok" : "ko"}">${d.available ? "Oui" : "Non"}</span></td>
+          <td>
+            <button class="btn btn-toggle" onclick="toggleDish(${d.id}, ${!d.available})">${d.available ? "Masquer" : "Activer"}</button>
+            <button class="btn btn-del" onclick="delDish(${d.id})">Supprimer</button>
+          </td>
+        </tr>`).join("");
+    }
+
+    // --- Sélection de photo (fichier local -> Data URL) ---
+    let pendingImage = "";
+    function setPreview(src) {
+      const p = document.getElementById("m-preview");
+      if (src) { p.style.backgroundImage = `url('${src}')`; p.textContent = ""; }
+      else { p.style.backgroundImage = "none"; p.textContent = "📷"; }
+    }
+    function pickPhoto(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      if (file.size > 4 * 1024 * 1024) { alert("Photo trop lourde (max 4 Mo)."); return; }
+      const reader = new FileReader();
+      reader.onload = () => { pendingImage = reader.result; setPreview(pendingImage);
+        document.getElementById("m-img").value = ""; };
+      reader.readAsDataURL(file);
+    }
+    function urlPreview() {
+      const url = document.getElementById("m-img").value.trim();
+      pendingImage = url; setPreview(url);
+    }
+
+    async function addDish() {
+      try {
+        await api("/api/admin/menu", { method: "POST", body: JSON.stringify({
+          name: document.getElementById("m-name").value,
+          category: document.getElementById("m-cat").value,
+          price: document.getElementById("m-price").value,
+          image: pendingImage,
+        })});
+        document.getElementById("m-name").value = ""; document.getElementById("m-price").value = "";
+        document.getElementById("m-img").value = ""; document.getElementById("m-file").value = "";
+        pendingImage = ""; setPreview("");
+        loadMenu();
+      } catch (e) { alert(e.message); }
+    }
+    const toggleDish = (id, available) => api(`/api/admin/menu/${id}`, { method: "PATCH", body: JSON.stringify({ available }) }).then(loadMenu);
+    const delDish = (id) => confirm("Supprimer ce plat ?") && api(`/api/admin/menu/${id}`, { method: "DELETE" }).then(loadMenu);
+
+    async function loadStaff() {
+      const staff = await api("/api/admin/staff");
+      document.getElementById("staffBody").innerHTML = staff.map(u => `
+        <tr>
+          <td>${u.id}</td><td>${u.username}</td><td>${u.role}</td>
+          <td>${u.id === myId ? '<span class="muted">vous</span>' :
+            `<button class="btn btn-del" onclick="delStaff(${u.id})">Supprimer</button>`}</td>
+        </tr>`).join("");
+    }
+    async function addStaff() {
+      try {
+        await api("/api/admin/staff", { method: "POST", body: JSON.stringify({
+          username: document.getElementById("s-user").value,
+          password: document.getElementById("s-pass").value,
+          role: document.getElementById("s-role").value,
+        })});
+        document.getElementById("s-user").value = ""; document.getElementById("s-pass").value = "";
+        loadStaff();
+      } catch (e) { alert(e.message); }
+    }
+    const delStaff = (id) => confirm("Supprimer ce compte ?") && api(`/api/admin/staff/${id}`, { method: "DELETE" }).then(loadStaff);
+
+    // raccourcis DOM
+    const u = document.getElementById("u"), p = document.getElementById("p");
+    const loginErr = document.getElementById("loginErr");
+    const login_ = document.getElementById("login"), app = document.getElementById("app");
+  </script>
+</body>
+</html>

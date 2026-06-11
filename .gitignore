@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.pt
+ai_vision/__pycache__/
+runs/
+ai-interview-assistant/
