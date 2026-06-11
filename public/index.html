@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant Intelligent</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:system-ui,Segoe UI,sans-serif; min-height:100vh;
+           background:linear-gradient(135deg,#c0392b 0%,#7d1f15 100%); color:#fff;
+           display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+    .logo { font-size:54px; margin-bottom:6px; }
+    h1 { font-size:30px; margin-bottom:4px; text-align:center; }
+    .sub { opacity:.85; margin-bottom:34px; text-align:center; }
+    .grid { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; max-width:980px; }
+    .card { background:rgba(255,255,255,.97); color:#2c2c2c; width:280px; border-radius:18px;
+            padding:26px 22px; text-decoration:none; transition:.2s; box-shadow:0 8px 24px rgba(0,0,0,.22); }
+    .card:hover { transform:translateY(-6px); box-shadow:0 14px 32px rgba(0,0,0,.3); }
+    .card .ico { font-size:42px; }
+    .card h2 { color:#c0392b; margin:12px 0 8px; font-size:20px; }
+    .card p { font-size:14px; color:#555; line-height:1.5; }
+    .card .tag { display:inline-block; margin-top:14px; background:#faf0ee; color:#c0392b;
+                 font-size:12px; padding:4px 12px; border-radius:20px; font-weight:600; }
+    footer { margin-top:34px; font-size:13px; opacity:.8; text-align:center; }
+    footer code { background:rgba(255,255,255,.18); padding:2px 7px; border-radius:5px; }
+  </style>
+</head>
+<body>
+  <div class="logo">🍽️</div>
+  <h1>Restaurant Intelligent</h1>
+  <p class="sub">Commande par QR Code · Cuisine en temps réel · Vision IA</p>
+
+  <div class="grid">
+    <a class="card" href="/menu?table=1">
+      <div class="ico">👤</div>
+      <h2>Espace Client</h2>
+      <p>Scannez le QR Code de votre table, consultez le menu et passez commande sans compte.</p>
+      <span class="tag">Accès libre · Table 1 (démo)</span>
+    </a>
+
+    <a class="card" href="/kitchen.html">
+      <div class="ico">👨‍🍳</div>
+      <h2>Cuisine / Serveur</h2>
+      <p>Recevez les commandes en temps réel avec le numéro de table et suivez le plan de salle.</p>
+      <span class="tag">serveur / serveur123</span>
+    </a>
+
+    <a class="card" href="/admin.html">
+      <div class="ico">📊</div>
+      <h2>Administration</h2>
+      <p>Statistiques, gestion du menu et du personnel. Pilotez tout le restaurant.</p>
+      <span class="tag">admin / admin123</span>
+    </a>
+
+    <a class="card" href="/qrcodes">
+      <div class="ico">📲</div>
+      <h2>QR Codes des tables</h2>
+      <p>Générez et imprimez les QR Codes à poser sur chaque table du restaurant.</p>
+      <span class="tag">À imprimer</span>
+    </a>
+  </div>
+
+  <footer>
+    App unifiée — un seul serveur sur <code id="host">localhost:3000</code><br>
+    Vision IA (Python/YOLO) → <code>POST /api/tables/status</code>
+  </footer>
+
+  <script>
+    document.getElementById("host").textContent = location.host;
+  </script>
+</body>
+</html>

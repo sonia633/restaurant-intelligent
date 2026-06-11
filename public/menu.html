@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu — Restaurant Intelligent</title>
+  <style>
+    :root {
+      --primary:#e63946; --primary-dark:#c1121f; --accent:#f77f00;
+      --bg:#fff8f0; --card:#ffffff; --txt:#2b2d42; --muted:#8d99ae;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+           background:var(--bg); color:var(--txt); padding-bottom:96px; }
+    header { background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+             color:#fff; padding:22px 18px; position:sticky; top:0; z-index:5;
+             box-shadow:0 4px 16px rgba(230,57,70,.3); border-radius:0 0 22px 22px; }
+    header h1 { margin:0; font-size:22px; display:flex; align-items:center; gap:8px; }
+    header .table-badge { margin-top:8px; display:inline-block; background:rgba(255,255,255,.22);
+                          padding:5px 14px; border-radius:20px; font-size:14px; font-weight:600; }
+    .category { padding:18px 18px 4px; font-size:13px; text-transform:uppercase;
+                letter-spacing:1.5px; color:var(--accent); font-weight:700; }
+    .dish { display:flex; align-items:center; gap:14px; background:var(--card);
+            margin:10px 16px; padding:12px; border-radius:16px;
+            box-shadow:0 3px 12px rgba(43,45,66,.08); transition:.2s; }
+    .dish:active { transform:scale(.99); }
+    .dish-photo { width:78px; height:78px; border-radius:13px; flex-shrink:0; object-fit:cover;
+                  display:flex; align-items:center; justify-content:center; font-size:34px; color:#fff; }
+    .dish-info { flex:1; min-width:0; }
+    .dish-info h3 { margin:0 0 5px; font-size:16px; }
+    .dish-info .price { color:var(--primary); font-weight:700; font-size:15px; }
+    .qty { display:flex; align-items:center; gap:11px; }
+    .qty button { width:34px; height:34px; border:none; border-radius:50%;
+                  background:var(--primary); color:#fff; font-size:20px; cursor:pointer;
+                  display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(230,57,70,.4); }
+    .qty button.minus { background:#fff; color:var(--primary); border:2px solid var(--primary); box-shadow:none; }
+    .qty span { min-width:20px; text-align:center; font-weight:700; font-size:16px; }
+    .cart { position:fixed; bottom:0; left:0; right:0; background:#fff;
+            box-shadow:0 -3px 16px rgba(43,45,66,.14); padding:14px 18px;
+            display:flex; align-items:center; justify-content:space-between; border-radius:22px 22px 0 0; }
+    .cart .lbl { font-size:12px; color:var(--muted); }
+    .cart .total { font-size:22px; font-weight:800; color:var(--txt); }
+    .cart button { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff;
+                   border:none; padding:15px 26px; border-radius:14px; font-size:16px; font-weight:700;
+                   cursor:pointer; box-shadow:0 4px 14px rgba(230,57,70,.4); }
+    .cart button:disabled { background:#d3d3d3; box-shadow:none; cursor:not-allowed; }
+    .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-80px);
+             background:#2a9d8f; color:#fff; padding:13px 22px; border-radius:12px;
+             opacity:0; transition:.35s; z-index:10; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,.2); }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .error { color:var(--primary); text-align:center; padding:40px 24px; font-size:17px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍽️ Restaurant Intelligent</h1>
+    <span class="table-badge" id="tableBadge">Table : —</span>
+  </header>
+
+  <div id="menu"><p style="text-align:center;padding:34px;color:#8d99ae;">Chargement du menu…</p></div>
+
+  <div class="cart">
+    <div>
+      <div class="lbl">Total</div>
+      <div class="total" id="total">0.00 €</div>
+    </div>
+    <button id="orderBtn" disabled>Valider ma commande</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const table = params.get("table");
+
+    if (!table) {
+      document.body.innerHTML =
+        '<p class="error">❌ Table non spécifiée.<br>Veuillez scanner le QR Code de votre table.</p>';
+      throw new Error("Table manquante");
+    }
+    document.getElementById("tableBadge").textContent = "Table " + table;
+
+    // Visuel par défaut (emoji + couleur) selon la catégorie, si pas de photo.
+    const CAT_STYLE = {
+      "Entrée":  { emoji:"🥗", color:"#2a9d8f" },
+      "Plat":    { emoji:"🍔", color:"#e63946" },
+      "Dessert": { emoji:"🍰", color:"#e76f51" },
+      "Boisson": { emoji:"🥤", color:"#f77f00" },
+    };
+    const fallback = (cat) => CAT_STYLE[cat] || { emoji:"🍴", color:"#8d99ae" };
+
+    const cart = {};
+    let menuData = [];
+
+    fetch("/api/menu")
+      .then((r) => r.json())
+      .then((data) => { menuData = data; renderMenu(); })
+      .catch(() => {
+        document.getElementById("menu").innerHTML =
+          '<p class="error">Impossible de charger le menu.</p>';
+      });
+
+    function photoHtml(d) {
+      const f = fallback(d.category);
+      if (d.image) {
+        return `<img class="dish-photo" src="${d.image}" alt="${d.name}"
+                  onerror="this.outerHTML='<div class=\\'dish-photo\\' style=\\'background:${f.color}\\'>${f.emoji}</div>'" />`;
+      }
+      return `<div class="dish-photo" style="background:${f.color}">${f.emoji}</div>`;
+    }
+
+    function renderMenu() {
+      const container = document.getElementById("menu");
+      const categories = [...new Set(menuData.map((m) => m.category))];
+      container.innerHTML = categories.map((cat) => `
+        <div class="category">${cat}</div>
+        ${menuData.filter((m) => m.category === cat).map((d) => `
+          <div class="dish">
+            ${photoHtml(d)}
+            <div class="dish-info">
+              <h3>${d.name}</h3>
+              <span class="price">${d.price.toFixed(2)} €</span>
+            </div>
+            <div class="qty">
+              <button class="minus" onclick="changeQty(${d.id}, -1)">−</button>
+              <span id="qty-${d.id}">0</span>
+              <button onclick="changeQty(${d.id}, 1)">+</button>
+            </div>
+          </div>`).join("")}
+      `).join("");
+    }
+
+    function changeQty(id, delta) {
+      cart[id] = Math.max(0, (cart[id] || 0) + delta);
+      if (cart[id] === 0) delete cart[id];
+      document.getElementById("qty-" + id).textContent = cart[id] || 0;
+      updateTotal();
+    }
+
+    function updateTotal() {
+      let total = 0;
+      for (const id in cart) {
+        const dish = menuData.find((m) => m.id === Number(id));
+        if (dish) total += dish.price * cart[id];
+      }
+      document.getElementById("total").textContent = total.toFixed(2) + " €";
+      document.getElementById("orderBtn").disabled = Object.keys(cart).length === 0;
+    }
+
+    document.getElementById("orderBtn").addEventListener("click", () => {
+      const items = Object.keys(cart).map((id) => ({ id: Number(id), qty: cart[id] }));
+      fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table, items }),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.error) throw new Error(res.error);
+          showToast("✅ Commande envoyée en cuisine !");
+          for (const id in cart) { delete cart[id]; document.getElementById("qty-" + id).textContent = 0; }
+          updateTotal();
+        })
+        .catch((e) => showToast("❌ " + e.message, true));
+    });
+
+    function showToast(msg, isError) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = isError ? "#e63946" : "#2a9d8f";
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2600);
+    }
+  </script>
+</body>
+</html>

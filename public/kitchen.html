@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cuisine / Salle — Restaurant Intelligent</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { margin:0; font-family:system-ui,Segoe UI,sans-serif; background:#1e1e2e; color:#eee; }
+    header { background:#11111b; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+    h1 { font-size:18px; margin:0; }
+    .login { max-width:320px; margin:80px auto; background:#26263a; padding:24px; border-radius:12px; }
+    .login input { width:100%; padding:10px; margin:6px 0; border-radius:8px; border:none; }
+    .login button, header button { background:#c0392b; color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; }
+    .wrap { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px; }
+    .panel { background:#26263a; border-radius:12px; padding:14px; }
+    .panel h2 { margin-top:0; font-size:15px; color:#c0392b; }
+    .order { background:#2f2f47; border-radius:10px; padding:12px; margin-bottom:10px; border-left:4px solid #c0392b; }
+    .order .head { display:flex; justify-content:space-between; font-weight:600; }
+    .order ul { margin:8px 0 0; padding-left:18px; font-size:14px; }
+    .badge { font-size:12px; padding:2px 8px; border-radius:10px; background:#444; }
+    .tables { display:flex; gap:12px; flex-wrap:wrap; }
+    .table { flex:1; min-width:90px; text-align:center; padding:18px 8px; border-radius:10px; font-weight:600; }
+    .Libre { background:#27ae60; }
+    .Occupée { background:#c0392b; }
+    .muted { color:#888; font-size:13px; }
+  </style>
+</head>
+<body>
+  <!-- Connexion staff -->
+  <div class="login" id="login">
+    <h1>🔐 Connexion Staff</h1>
+    <input id="u" placeholder="Utilisateur (admin / serveur)" />
+    <input id="p" type="password" placeholder="Mot de passe" />
+    <button onclick="login()">Se connecter</button>
+    <p class="muted" id="loginErr"></p>
+  </div>
+
+  <!-- Tableau de bord -->
+  <div id="app" style="display:none;">
+    <header>
+      <h1>👨‍🍳 Cuisine & Salle <span class="muted" id="who"></span></h1>
+      <button onclick="logout()">Déconnexion</button>
+    </header>
+    <div class="wrap">
+      <div class="panel">
+        <h2>Commandes en temps réel</h2>
+        <div id="orders"><p class="muted">En attente de commandes…</p></div>
+      </div>
+      <div class="panel">
+        <h2>Plan de salle (IA)</h2>
+        <div class="tables" id="tables"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token = null, socket = null;
+
+    async function login() {
+      const username = document.getElementById("u").value;
+      const password = document.getElementById("p").value;
+      const r = await fetch("/api/auth/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await r.json();
+      if (data.error) { document.getElementById("loginErr").textContent = data.error; return; }
+      token = data.token;
+      document.getElementById("who").textContent = "— " + data.username + " (" + data.role + ")";
+      document.getElementById("login").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      connectSocket();
+    }
+
+    function logout() { location.reload(); }
+
+    function connectSocket() {
+      socket = io({ auth: { token } });
+      socket.on("orders:snapshot", (orders) => orders.forEach(addOrder));
+      socket.on("order:new", addOrder);
+      socket.on("order:update", addOrder);
+      socket.on("tables:snapshot", renderTables);
+      socket.on("tables:update", () => fetchTables());
+    }
+
+    const seen = {};
+    function addOrder(o) {
+      const box = document.getElementById("orders");
+      if (box.querySelector(".muted")) box.innerHTML = "";
+      let el = seen[o.id];
+      const html = `
+        <div class="head"><span>Table ${o.table} — #${o.id}</span>
+          <span class="badge">${o.status}</span></div>
+        <ul>${o.items.map((i) => `<li>${i.qty}× ${i.name}</li>`).join("")}</ul>
+        <div class="muted">Total : ${o.total.toFixed(2)} €</div>`;
+      if (el) { el.innerHTML = html; }
+      else {
+        el = document.createElement("div"); el.className = "order"; el.innerHTML = html;
+        box.prepend(el); seen[o.id] = el;
+      }
+    }
+
+    function renderTables(tables) {
+      const box = document.getElementById("tables");
+      box.innerHTML = Object.entries(tables).map(([num, t]) => `
+        <div class="table ${t.status}">Table ${num}<br><small>${t.status}</small></div>
+      `).join("");
+    }
+
+    async function fetchTables() {
+      const r = await fetch("/api/tables", { headers: { Authorization: "Bearer " + token } });
+      renderTables(await r.json());
+    }
+  </script>
+</body>
+</html>
