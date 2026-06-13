@@ -141,6 +141,16 @@ app.get("/api/qrcode", async (req, res) => {
 });
 
 /* ============================================================
+ *  DOCUMENTATION — PDF d'explication du code (téléchargement)
+ * ============================================================ */
+app.get("/api/docs/pdf", (req, res) => {
+  const file = path.join(__dirname, "public", "docs", "restaurant-intelligent-explication-code.pdf");
+  res.download(file, "Restaurant-Intelligent-Explication-du-code.pdf", (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: "PDF introuvable. Lancez : python docs/generate_doc_pdf.py" });
+  });
+});
+
+/* ============================================================
  *  COMMANDES
  * ============================================================ */
 // Le client valide sa commande pour sa table.

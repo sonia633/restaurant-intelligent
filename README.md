@@ -1,5 +1,10 @@
 # 🍽️ Restaurant Intelligent
 
+<!-- doc-pdf -->
+## 📄 Explication du code
+
+📥 **[Télécharger le PDF d'explication du code](public/docs/restaurant-intelligent-explication-code.pdf)** — architecture, fichiers principaux, API et démarrage, expliqués pas à pas.
+
 Application connectant un serveur **Node.js (Express + Socket.IO)** à un module de
 **vision par ordinateur Python (OpenCV + YOLOv8)** pour gérer commandes et occupation
 des tables en temps réel.
@@ -110,6 +115,20 @@ Pour entraîner un modèle custom :
 yolo detect train data=dataset.yaml model=yolov8n.pt epochs=50 imgsz=640
 ```
 puis remplacez `MODEL_PATH = "yolov8n.pt"` par `runs/detect/train/weights/best.pt`.
+
+## 📄 Documentation du code (PDF téléchargeable)
+
+Un PDF qui **explique tout le code** (architecture, serveur Node.js, temps réel
+Socket.IO, base de données, vision IA Python, routes API) est disponible :
+
+- **Dans l'app** : page d'accueil → carte « Explication du code (PDF) », ou directement
+  `http://localhost:3000/api/docs/pdf`.
+- **Fichier** : `public/docs/restaurant-intelligent-explication-code.pdf`.
+
+Pour le régénérer après une modification du code :
+```bash
+python docs/generate_doc_pdf.py
+```
 
 ## 🔒 Sécurité (à renforcer en production)
 - Remplacer la base en mémoire (`data/db.js`) par PostgreSQL/MongoDB.
