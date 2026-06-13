@@ -1,5 +1,15 @@
 # 🍽️ Restaurant Intelligent
 
+<!-- run-site -->
+## ▶️ Voir le site (en local)
+
+```bash
+npm install
+npm start
+```
+
+Puis ouvrir dans le navigateur : **http://localhost:3000**
+
 <!-- doc-pdf -->
 ## 📄 Explication du code
 
