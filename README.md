@@ -1,5 +1,10 @@
 # 🍽️ Restaurant Intelligent
 
+<!-- live-demo -->
+## 🌐 Démo en ligne
+
+👉 **[Voir le site en ligne](https://sonia633.github.io/restaurant-intelligent/)**
+
 <!-- run-site -->
 ## ▶️ Voir le site (en local)
 
