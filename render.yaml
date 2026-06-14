@@ -1,0 +1,29 @@
+# Déploiement Render — Restaurant Intelligent (Node.js + Express + Socket.IO)
+# L'app Node sert TOUT (pages, API REST, temps réel) => un seul service.
+#
+# Comment l'utiliser :
+#   1. Compte gratuit sur https://render.com (Sign in with GitHub)
+#   2. New + -> Blueprint -> dépôt sonia633/restaurant-intelligent -> Apply
+#   3. Build ~2 min. URL du type :
+#        https://restaurant-intelligent-sonia633.onrender.com
+#   4. L'app COMPLÈTE marche directement à cette URL :
+#        /                     page d'accueil
+#        /menu?table=1         espace client (commande)
+#        /kitchen.html         cuisine/serveur (temps réel)  -> serveur / serveur123
+#        /admin.html           administration                -> admin / admin123
+services:
+  - type: web
+    name: restaurant-intelligent-sonia633
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Secret JWT généré automatiquement par Render.
+      - key: JWT_SECRET
+        generateValue: true
+      # Clé partagée avec le module IA Python (POST /api/tables/status).
+      - key: AI_API_KEY
+        value: "ai-secret-key"
